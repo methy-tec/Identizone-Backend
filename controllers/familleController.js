@@ -275,5 +275,42 @@ export const getAllFamilles = async (req, res) => {
   }
 };
 
+/**
+ * 📋 Récupérer les familles pour un travailleur
+ * Seules les familles avec le même adminId que le travailleur seront retournées
+ */
+export const getFamillesForTravailleur = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "❌ Utilisateur non authentifié." });
+    }
+
+    const { role, adminId } = req.user;
+
+    if (role !== "travailleur") {
+      return res.status(403).json({ message: "❌ Accès réservé aux travailleurs." });
+    }
+
+    if (!adminId) {
+      return res.status(400).json({ message: "❌ adminId manquant pour le travailleur." });
+    }
+
+    // 🔗 Récupérer les familles correspondant à l'adminId du travailleur
+    const familles = await Famille.find({ adminId })
+      .populate("pere", "id nom postnom prenom statut date_deces")
+      .populate("mere", "id nom postnom prenom statut date_deces")
+      .lean();
+
+    return res.status(200).json(familles);
+  } catch (error) {
+    console.error("❌ Erreur getFamillesForTravailleur:", error);
+    return res.status(500).json({
+      message: "❌ Erreur lors de la récupération des familles pour le travailleur",
+      error: error.message,
+    });
+  }
+};
+
+
 
 
