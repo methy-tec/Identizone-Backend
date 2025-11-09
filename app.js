@@ -21,15 +21,11 @@ const app = express();
 // 🔐 1️⃣ Sécurité générale
 // ----------------------------
 app.use(helmet()); // protège les headers HTTP
-app.use(
-  mongoSanitize({
-    replaceWith: "_",
-    ignoreQuery: true,
-    onSanitize: ({ req, key }) => {
-      console.log(`Sanitized key: ${key}`);
-    },
-  })
-);// empêche les injections MongoDB
+app.use((req, res, next) => {
+  if (req.body) mongoSanitize.sanitize(req.body, { replaceWith: "_" });
+  if (req.params) mongoSanitize.sanitize(req.params, { replaceWith: "_" });
+  next();
+});// empêche les injections MongoDB
 app.use(xssClean()); // bloque les attaques XSS
 app.use(hpp()); // empêche la pollution des paramètres HTTP
 app.use(compression()); // compresse les réponses pour de meilleures performances
