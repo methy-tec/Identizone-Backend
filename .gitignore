@@ -1,0 +1,22 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environnements
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Builds temporaires
+dist/
+.tmp/
+.cache/
+
+# Fichiers uploadés
+uploads/
+identizone/
