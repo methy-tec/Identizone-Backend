@@ -23,9 +23,13 @@ const app = express();
 app.use(helmet()); // protège les headers HTTP
 app.use(
   mongoSanitize({
-    replaceWith: "_", // remplace les $ et . par _ au lieu de réassigner l’objet
+    replaceWith: "_",
+    ignoreQuery: true,
+    onSanitize: ({ req, key }) => {
+      console.log(`Sanitized key: ${key}`);
+    },
   })
-); // empêche les injections MongoDB
+);// empêche les injections MongoDB
 app.use(xssClean()); // bloque les attaques XSS
 app.use(hpp()); // empêche la pollution des paramètres HTTP
 app.use(compression()); // compresse les réponses pour de meilleures performances
