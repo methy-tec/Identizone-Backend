@@ -26,7 +26,22 @@ app.use((req, res, next) => {
   if (req.params) mongoSanitize.sanitize(req.params, { replaceWith: "_" });
   next();
 });// empêche les injections MongoDB
-app.use(xssClean()); // bloque les attaques XSS
+app.use((req, res, next) => {
+  const sanitizeObject = (obj) => {
+    for (const key in obj) {
+      if (typeof obj[key] === "string") {
+        obj[key] = xss(obj[key]);
+      } else if (typeof obj[key] === "object" && obj[key] !== null) {
+        sanitizeObject(obj[key]);
+      }
+    }
+  };
+
+  if (req.body) sanitizeObject(req.body);
+  if (req.params) sanitizeObject(req.params);
+  // on ignore req.query pour éviter le crash
+  next();
+}); // bloque les attaques XSS
 app.use(hpp()); // empêche la pollution des paramètres HTTP
 app.use(compression()); // compresse les réponses pour de meilleures performances
 
