@@ -1,5 +1,5 @@
 import express from "express";
-import { createFamille, updateStatutParent, getFamillesWithParentsDecedes, getFamillesByUser, updateFamille, deleteFamille, getAllFamilles } from "../controllers/familleController.js";
+import { createFamille, updateStatutParent, getFamillesWithParentsDecedes, getFamillesByUser, updateFamille, getFamillesForTravailleur, deleteFamille, getAllFamilles } from "../controllers/familleController.js";
 import { verifyToken, verifyRole } from "../middlewares/authMiddlewares.js";
 
 const router = express.Router();
@@ -15,6 +15,9 @@ router.get("/mes-familles", verifyToken, getFamillesByUser);
 
 //Super Admin voir tout les famille
 router.get("/list", verifyToken, getAllFamilles);
+
+//Travailleur voir la famille qui on le meme id
+router.get("/list/tra", verifyToken, getFamillesForTravailleur)
 
 // ✏️ Modifier une famille
 router.put("/:id", verifyToken, updateFamille);
