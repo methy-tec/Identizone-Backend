@@ -48,6 +48,7 @@ app.use(compression()); // compresse les réponses pour de meilleures performanc
 // ----------------------------
 // 🌍 2️⃣ CORS (Accès API sécurisé)
 // ----------------------------
+/*
 app.use(
   cors({
     origin: process.env.FRONT_URL || "*", // 👉 à remplacer plus tard par ton URL front Electron ou web
@@ -56,6 +57,8 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+*/
+
 
 // ----------------------------
 // 🧠 3️⃣ Body Parser
