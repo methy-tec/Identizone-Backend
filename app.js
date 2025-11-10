@@ -1,7 +1,6 @@
 // src/server.js
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
@@ -9,10 +8,9 @@ import mongoSanitize from "express-mongo-sanitize";
 import xssClean from "xss-clean";
 import hpp from "hpp";
 import compression from "compression";
-import { connectMongo } from "./config/database.js"; // ✅ Ton fichier MongoDB
-import { auditMiddleware } from "./middlewares/auditMiddleware.js"; // Mon fichier pour enregistre chaque action
+import { connectMongo } from "./config/database.js";
+import { auditMiddleware } from "./middlewares/auditMiddleware.js";
 
-// Charger les variables d'environnement
 dotenv.config();
 
 const app = express();
@@ -20,45 +18,52 @@ const app = express();
 // ----------------------------
 // 🔐 1️⃣ Sécurité générale
 // ----------------------------
-app.use(helmet()); // protège les headers HTTP
+app.use(helmet());
 app.use((req, res, next) => {
   if (req.body) mongoSanitize.sanitize(req.body, { replaceWith: "_" });
   if (req.params) mongoSanitize.sanitize(req.params, { replaceWith: "_" });
   next();
-});// empêche les injections MongoDB
+});
 app.use((req, res, next) => {
   const sanitizeObject = (obj) => {
     for (const key in obj) {
       if (typeof obj[key] === "string") {
-        obj[key] = xss(obj[key]);
+        obj[key] = xssClean(obj[key]);
       } else if (typeof obj[key] === "object" && obj[key] !== null) {
         sanitizeObject(obj[key]);
       }
     }
   };
-
   if (req.body) sanitizeObject(req.body);
   if (req.params) sanitizeObject(req.params);
-  // on ignore req.query pour éviter le crash
   next();
-}); // bloque les attaques XSS
-app.use(hpp()); // empêche la pollution des paramètres HTTP
-app.use(compression()); // compresse les réponses pour de meilleures performances
+});
+app.use(hpp());
+app.use(compression());
 
 // ----------------------------
-// 🌍 2️⃣ CORS (Accès API sécurisé)
+// 🌍 2️⃣ CORS dynamique pour plusieurs origines
 // ----------------------------
+const allowedOrigins = process.env.FRONT_URL ? process.env.FRONT_URL.split(",") : ["*"];
 
-app.use(
-  cors({
-    origin: process.env.FRONT_URL || "*", // 👉 à remplacer plus tard par ton URL front Electron ou web
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+  );
 
-
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 
 // ----------------------------
 // 🧠 3️⃣ Body Parser
@@ -67,29 +72,31 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // ----------------------------
-// 📂 4️⃣ Dossier statique (uploads, images, empreintes, etc.)
+// 📂 4️⃣ Dossier statique
 // ----------------------------
 app.use("/uploads", express.static("identizone"));
-app.disable("x-powered-by"); // masque le header Express
+app.disable("x-powered-by");
 
-//📂 AJout du middleware global d'audit
+// ----------------------------
+//📂 Middleware audit
+// ----------------------------
 app.use(auditMiddleware);
 
 // ----------------------------
 // 📊 5️⃣ Logs
 // ----------------------------
 if (process.env.NODE_ENV !== "production") {
-  app.use(morgan("dev")); // format lisible en dev
+  app.use(morgan("dev"));
 } else {
-  app.use(morgan("combined")); // format log complet en prod
+  app.use(morgan("combined"));
 }
 
 // ----------------------------
 // 🚦 6️⃣ Limiteur de requêtes
 // ----------------------------
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
-  max: 500, // max requêtes / IP
+  windowMs: 15 * 60 * 1000,
+  max: 500,
   message: "⛔ Trop de requêtes, réessayez plus tard.",
   standardHeaders: true,
   legacyHeaders: false,
