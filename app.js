@@ -44,7 +44,7 @@ app.use(compression());
 // ----------------------------
 // 🌍 2️⃣ CORS dynamique pour plusieurs origines
 // ----------------------------
-const allowedOrigins = process.env.FRONT_URL ? process.env.FRONT_URL.split(",") : ["*"];
+const allowedOrigins = process.env.FRONT_URL ? process.env.FRONT_URL.split(",").concat("null"): ["*", "null"];
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
