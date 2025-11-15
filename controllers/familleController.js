@@ -316,54 +316,30 @@ export const getFamilleById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!id) {
-      return res.status(400).json({ message: "❌ ID de la famille manquant." });
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "❌ ID de la famille invalide." });
     }
 
-    const famille = await Famille.findOne({ id }).lean();
-    console.log("🔍 Famille recherchée :", id);
-    console.log("🔍 Résultat :", famille);
+    const famille = await Famille.findById(id)
+      .populate("pere", "id nom postnom prenom statut date_deces")
+      .populate("mere", "id nom postnom prenom statut date_deces")
+      .lean();
 
     if (!famille) {
       return res.status(404).json({ message: "❌ Famille introuvable." });
     }
 
-    // 🔹 Vérification des droits d’accès
-    const { role, id: userId, adminId, habitatId } = req.user;
-
-    if (role === "admin" && famille.adminId !== userId) {
-      return res.status(403).json({ message: "🚫 Accès refusé à cette famille." });
-    }
-
-    if (role === "preadmin" && famille.habitatId !== habitatId) {
-      return res.status(403).json({ message: "🚫 Famille hors de votre zone." });
-    }
-
-    if (role === "travailleur" && famille.habitatId !== habitatId) {
-      return res.status(403).json({ message: "🚫 Famille hors de votre zone de travail." });
-    }
-
-    // 🔹 Récupérer les habitants liés à la famille
     const habitants = await Utilisateur.find({ familleId: id })
       .select("id nom postnom prenom sexe date_naissance profession statut")
       .sort({ createdAt: -1 })
       .lean();
 
-    const nombre_personne = habitants.length;
-
-    return res.json({
+    res.json({
       message: "✅ Famille trouvée avec succès.",
-      famille: {
-        ...famille,
-        nombre_personne,
-        habitants,
-      },
+      famille: { ...famille, nombre_personne: habitants.length, habitants },
     });
   } catch (error) {
     console.error("❌ Erreur getFamilleById:", error);
-    return res.status(500).json({
-      message: "❌ Erreur lors du chargement de la famille.",
-      error: error.message,
-    });
+    res.status(500).json({ message: "❌ Erreur lors du chargement de la famille.", error: error.message });
   }
 };
