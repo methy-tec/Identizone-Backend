@@ -243,7 +243,12 @@ export const getUtilisateurs = async (req, res) => {
       filter = { adminId: req.user.id };
     } else if (req.user.role === "preadmin") {
       filter = { habitatId: req.user.habitatId };
-    } else if (req.user.role === "superadmin") {
+    }else if (req.user.role ==="travailler"){
+      filter = {
+         habitatId: req.user.habitatId
+        }
+    } 
+    else if (req.user.role === "superadmin") {
       filter = {}; // voir tous
     } else {
       return res.status(403).json({ message: "Accès refusé ❌" });
@@ -265,4 +270,54 @@ export const getUtilisateurs = async (req, res) => {
     });
   }
 };
+
+// 📋 Récupérer les utilisateurs d'une famille spécifique
+export const getUtilisateursByFamille = async (req, res) => {
+  try {
+    const { familleId } = req.params;
+
+    if (!familleId) {
+      return res.status(400).json({ message: "❌ ID de la famille manquant." });
+    }
+
+    // Vérifier que la famille existe
+    const famille = await Famille.findOne({ id: familleId });
+    if (!famille) {
+      return res.status(404).json({ message: "❌ Famille introuvable." });
+    }
+
+    // Filtre de base
+    let filter = { familleId };
+
+    // Sécurité selon le rôle
+    if (req.user.role === "travailleur") {
+      filter.habitatId = req.user.habitatId; // il ne voit que les familles de son habitat
+    } else if (req.user.role === "preadmin") {
+      filter.habitatId = req.user.habitatId;
+    } else if (req.user.role === "admin") {
+      filter.adminId = req.user.id;
+    } else if (req.user.role !== "superadmin") {
+      return res.status(403).json({ message: "Accès refusé ❌" });
+    }
+
+    // Chercher les utilisateurs de la famille
+    const utilisateurs = await Utilisateur.find(filter)
+      .populate({ path: "famille", select: "id nom_complet" })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      famille: famille.nom_complet,
+      total: utilisateurs.length,
+      utilisateurs,
+    });
+  } catch (error) {
+    console.error("❌ Erreur getUtilisateursByFamille:", error);
+    res.status(500).json({
+      message: "❌ Erreur lors du chargement des utilisateurs de la famille.",
+      error: error.message,
+    });
+  }
+};
+
 
