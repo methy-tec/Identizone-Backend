@@ -6,6 +6,10 @@ const router = express.Router();
 
 router.post("/",verifyToken, createFamille);
 
+
+//Super Admin voir tout les famille
+router.get("/list", verifyToken, getAllFamilles);
+
 router.put("/:id/update-parent", verifyToken, verifyRole("admin", "preadmin"), updateStatutParent);
 // 📋 Voir les familles avec au moins un parent décédé
 router.get("/parents-decedes", verifyToken, verifyRole("admin", "preadmin"), getFamillesWithParentsDecedes);
@@ -16,8 +20,6 @@ router.get("/mes-familles", verifyToken, getFamillesByUser);
 
 router.get("/:id", verifyToken, getFamilleById); // ✅ voir une famille par ID
 
-//Super Admin voir tout les famille
-router.get("/list", verifyToken, getAllFamilles);
 
 //Travailleur voir la famille qui on le meme id
 router.get("/list/tra", verifyToken, getFamillesForTravailleur)
