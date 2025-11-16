@@ -4,11 +4,12 @@ import { verifyToken, verifyRole } from "../middlewares/authMiddlewares.js";
 
 const router = express.Router();
 
-router.post("/",verifyToken, createFamille);
-
 
 //Super Admin voir tout les famille
 router.get("/list", verifyToken, getAllFamilles);
+
+router.post("/",verifyToken, createFamille);
+
 
 router.put("/:id/update-parent", verifyToken, verifyRole("admin", "preadmin"), updateStatutParent);
 // 📋 Voir les familles avec au moins un parent décédé
